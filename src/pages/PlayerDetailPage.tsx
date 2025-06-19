@@ -13,6 +13,9 @@ interface Record {
   submitter_username: string;
   created_at: string;
   status: string;
+  image_1_url?: string;
+  image_2_url?: string;
+  image_3_url?: string;
 }
 
 interface PlayerDetail {
@@ -36,6 +39,8 @@ export const PlayerDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [newDescription, setNewDescription] = useState('');
   const [newEvidence, setNewEvidence] = useState('');
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -81,6 +86,61 @@ export const PlayerDetailPage: React.FC = () => {
     });
   };
 
+  // 处理图片上传
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    // 限制上传数量
+    if (images.length + files.length > 3) {
+      setSubmitError('最多只能上传3张图片');
+      return;
+    }
+
+    // 添加新选择的图片
+    const newImages = [...images];
+    const newPreviews = [...imagePreviews];
+    
+    Array.from(files).forEach(file => {
+      // 检查文件类型
+      if (!file.type.startsWith('image/')) {
+        setSubmitError('只能上传图片文件');
+        return;
+      }
+      
+      // 检查文件大小（限制为5MB）
+      if (file.size > 5 * 1024 * 1024) {
+        setSubmitError('图片大小不能超过5MB');
+        return;
+      }
+      
+      newImages.push(file);
+      
+      // 创建预览URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        newPreviews.push(reader.result as string);
+        setImagePreviews([...newPreviews]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    setImages(newImages);
+    setSubmitError(null);
+  };
+
+  // 移除已选择的图片
+  const removeImage = (index: number) => {
+    const newImages = [...images];
+    const newPreviews = [...imagePreviews];
+    
+    newImages.splice(index, 1);
+    newPreviews.splice(index, 1);
+    
+    setImages(newImages);
+    setImagePreviews(newPreviews);
+  };
+
   // 提交新的神人事迹
   const handleSubmitRecord = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,9 +154,23 @@ export const PlayerDetailPage: React.FC = () => {
       setSubmitting(true);
       setSubmitError(null);
       
-      await api.post(`/players/${id}/add_record/`, {
-        description: newDescription,
-        evidence: newEvidence
+      // 准备表单数据，包含图片
+      const formData = new FormData();
+      formData.append('description', newDescription);
+      
+      if (newEvidence.trim()) {
+        formData.append('evidence', newEvidence);
+      }
+      
+      // 添加图片到表单数据
+      images.forEach((image, index) => {
+        formData.append(`image_${index + 1}`, image);
+      });
+      
+      await api.post(`/players/${id}/add_record/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       
       // 重新获取玩家详情，包含新的记录
@@ -106,6 +180,8 @@ export const PlayerDetailPage: React.FC = () => {
       // 重置表单
       setNewDescription('');
       setNewEvidence('');
+      setImages([]);
+      setImagePreviews([]);
       setSubmitSuccess(true);
       
       // 3秒后隐藏成功消息
@@ -179,10 +255,10 @@ export const PlayerDetailPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4 mb-6">
-                {player.records.map((record) => (
+                {player.records.map((record, index) => (
                   <Card key={record.id} className="p-4">
                     <div className="mb-4">
-                      <h4 className="text-lg font-semibold mb-2">神人事迹</h4>
+                      <h4 className="text-lg font-semibold mb-2">事迹 #{index + 1}</h4>
                       <div className="bg-gray-50 p-4 rounded whitespace-pre-line">
                         {record.description}
                       </div>
@@ -190,9 +266,50 @@ export const PlayerDetailPage: React.FC = () => {
 
                     {record.evidence && (
                       <div className="mb-4">
-                        <h4 className="text-lg font-semibold mb-2">证据</h4>
+                        <h4 className="text-lg font-semibold mb-2">补充说明</h4>
                         <div className="bg-gray-50 p-4 rounded whitespace-pre-line">
                           {record.evidence}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* 显示图片 */}
+                    {(record.image_1_url || record.image_2_url || record.image_3_url) && (
+                      <div className="mb-4">
+                        <div className="flex flex-wrap gap-2">
+                          {record.image_1_url && (
+                            <div className="relative">
+                              <a href={record.image_1_url} target="_blank" rel="noopener noreferrer">
+                                <img 
+                                  src={record.image_1_url} 
+                                  alt={`事迹 #${index + 1} 图片1`} 
+                                  className="w-32 h-32 object-cover rounded cursor-pointer hover:opacity-90"
+                                />
+                              </a>
+                            </div>
+                          )}
+                          {record.image_2_url && (
+                            <div className="relative">
+                              <a href={record.image_2_url} target="_blank" rel="noopener noreferrer">
+                                <img 
+                                  src={record.image_2_url} 
+                                  alt={`事迹 #${index + 1} 图片2`} 
+                                  className="w-32 h-32 object-cover rounded cursor-pointer hover:opacity-90"
+                                />
+                              </a>
+                            </div>
+                          )}
+                          {record.image_3_url && (
+                            <div className="relative">
+                              <a href={record.image_3_url} target="_blank" rel="noopener noreferrer">
+                                <img 
+                                  src={record.image_3_url} 
+                                  alt={`事迹 #${index + 1} 图片3`} 
+                                  className="w-32 h-32 object-cover rounded cursor-pointer hover:opacity-90"
+                                />
+                              </a>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -239,18 +356,64 @@ export const PlayerDetailPage: React.FC = () => {
 
                   <div>
                     <label htmlFor="newEvidence" className="block text-sm font-medium text-gray-700 mb-1">
-                      证据（可选）
+                      补充说明（可选）
                     </label>
                     <textarea
                       id="newEvidence"
                       value={newEvidence}
                       onChange={(e) => setNewEvidence(e.target.value)}
                       className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      placeholder="可以是图片链接或详细描述..."
+                      placeholder="补充说明或其他信息..."
                     />
                   </div>
-
+                  
+                  {/* 图片上传区域 */}
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      配图（可选，最多3张）
+                    </label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {/* 已上传图片预览 */}
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative w-24 h-24 rounded overflow-hidden">
+                          <img 
+                            src={preview} 
+                            alt={`预览图 ${index + 1}`} 
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                            onClick={() => removeImage(index)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      
+                      {/* 上传按钮 */}
+                      {images.length < 3 && (
+                        <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span className="mt-1 text-xs text-gray-500">上传图片</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                            multiple
+                          />
+                        </label>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      支持JPG、PNG格式，单张图片大小不超过5MB
+                    </p>
+                  </div>
+
+                  <div className="pt-4">
                     <Button type="submit" className="w-full" disabled={submitting}>
                       {submitting ? '提交中...' : '提交神人事迹'}
                     </Button>

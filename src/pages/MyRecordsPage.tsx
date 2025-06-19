@@ -13,6 +13,9 @@ interface Record {
   evidence: string;
   created_at: string;
   status: string;
+  image_1_url?: string;
+  image_2_url?: string;
+  image_3_url?: string;
   player: {
     id: string;
     nickname: string;
@@ -179,9 +182,50 @@ export const MyRecordsPage: React.FC = () => {
 
                 {record.evidence && (
                   <div className="mt-4">
-                    <h4 className="font-medium mb-2">证据:</h4>
+                    <h4 className="font-medium mb-2">补充说明:</h4>
                     <div className="bg-gray-50 p-3 rounded whitespace-pre-line">
                       {record.evidence}
+                    </div>
+                  </div>
+                )}
+                
+                {/* 显示图片 */}
+                {(record.image_1_url || record.image_2_url || record.image_3_url) && (
+                  <div className="mt-4">
+                    <div className="flex flex-wrap gap-2">
+                      {record.image_1_url && (
+                        <div className="relative">
+                          <a href={record.image_1_url} target="_blank" rel="noopener noreferrer">
+                            <img 
+                              src={record.image_1_url} 
+                              alt="神人事迹图片1" 
+                              className="w-24 h-24 object-cover rounded cursor-pointer hover:opacity-90"
+                            />
+                          </a>
+                        </div>
+                      )}
+                      {record.image_2_url && (
+                        <div className="relative">
+                          <a href={record.image_2_url} target="_blank" rel="noopener noreferrer">
+                            <img 
+                              src={record.image_2_url} 
+                              alt="神人事迹图片2" 
+                              className="w-24 h-24 object-cover rounded cursor-pointer hover:opacity-90"
+                            />
+                          </a>
+                        </div>
+                      )}
+                      {record.image_3_url && (
+                        <div className="relative">
+                          <a href={record.image_3_url} target="_blank" rel="noopener noreferrer">
+                            <img 
+                              src={record.image_3_url} 
+                              alt="神人事迹图片3" 
+                              className="w-24 h-24 object-cover rounded cursor-pointer hover:opacity-90"
+                            />
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

@@ -15,7 +15,8 @@ export const SubmitPage: React.FC = () => {
   const [gameId, setGameId] = useState('');
   const [serverId, setServerId] = useState('');
   const [description, setDescription] = useState('');
-  const [evidence, setEvidence] = useState('');
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +46,71 @@ export const SubmitPage: React.FC = () => {
     }
   };
 
+  // 处理图片上传
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    // 限制上传数量
+    if (images.length + files.length > 3) {
+      setError('最多只能上传3张图片');
+      return;
+    }
+
+    // 添加新选择的图片
+    const newImages = [...images];
+    const newPreviews = [...imagePreviews];
+    
+    Array.from(files).forEach(file => {
+      // 检查文件类型
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        setError(`不支持的图片格式: ${file.type}。请上传JPG、PNG、GIF或WEBP格式的图片`);
+        return;
+      }
+      
+      // 检查文件大小（限制为5MB）
+      if (file.size > 5 * 1024 * 1024) {
+        setError(`图片 ${file.name} 大小超过5MB，请压缩后再上传`);
+        return;
+      }
+      
+      // 检查文件名长度
+      if (file.name.length > 100) {
+        setError('文件名过长，请重命名后再上传');
+        return;
+      }
+      
+      newImages.push(file);
+      
+      // 创建预览URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        newPreviews.push(reader.result as string);
+        setImagePreviews([...newPreviews]);
+      };
+      reader.onerror = () => {
+        setError(`读取图片 ${file.name} 失败，请尝试其他图片`);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    setImages(newImages);
+    setError(null);
+  };
+
+  // 移除已选择的图片
+  const removeImage = (index: number) => {
+    const newImages = [...images];
+    const newPreviews = [...imagePreviews];
+    
+    newImages.splice(index, 1);
+    newPreviews.splice(index, 1);
+    
+    setImages(newImages);
+    setImagePreviews(newPreviews);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -70,6 +136,22 @@ export const SubmitPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      // 准备基本数据（不包含图片）
+      const playerData = {
+        nickname,
+        game_id: gameId,
+        server: serverId
+      };
+      
+      // 准备记录数据（包含图片）
+      const formData = new FormData();
+      formData.append('description', description);
+      
+      // 如果有图片，添加到表单数据
+      images.forEach((image, index) => {
+        formData.append(`image_${index + 1}`, image);
+      });
+      
       // 首先尝试查找玩家是否已存在
       try {
         // 构建搜索参数
@@ -82,35 +164,38 @@ export const SubmitPage: React.FC = () => {
         const searchResponse = await api.get(`/players/search/?${searchParams.toString()}`);
         const players = searchResponse.data.results || searchResponse.data;
         
+        let playerId;
+        
         if (players && players.length > 0) {
-          // 玩家已存在，直接添加神人事迹
-          const playerId = players[0].id;
-          await api.post(`/players/${playerId}/add_record/`, {
-            description,
-            evidence
-          });
-          console.log(`为已存在的玩家 ${playerId} 添加神人事迹`);
+          // 玩家已存在，直接使用ID
+          playerId = players[0].id;
+          console.log(`玩家已存在，ID: ${playerId}`);
         } else {
-          // 玩家不存在，创建新玩家和神人事迹
-          await api.post('/players/', {
-            nickname,
-            game_id: gameId,
-            server: parseInt(serverId, 10),
-            description,
-            evidence
-          });
-          console.log('创建新玩家和神人事迹');
+          // 玩家不存在，创建新玩家（不包含记录和图片）
+          console.log('玩家不存在，创建新玩家');
+          const createResponse = await api.post('/players/', playerData);
+          playerId = createResponse.data.id;
+          console.log(`创建新玩家成功，ID: ${playerId}`);
         }
-      } catch (searchErr) {
-        // 搜索失败，尝试直接创建
-        console.error('搜索玩家失败，尝试直接创建:', searchErr);
-        await api.post('/players/', {
-          nickname,
-          game_id: gameId,
-          server: parseInt(serverId, 10),
-          description,
-          evidence
+        
+        // 无论是新玩家还是已有玩家，都使用add_record端点添加记录
+        await api.post(`/players/${playerId}/add_record/`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         });
+        console.log(`为玩家 ${playerId} 添加神人事迹成功`);
+        
+      } catch (err: any) {
+        console.error('操作失败:', err);
+        
+        // 检查是否是图片验证错误
+        if (err.response?.data?.image_1 || err.response?.data?.image_2 || err.response?.data?.image_3) {
+          const imageError = err.response.data.image_1 || err.response.data.image_2 || err.response.data.image_3;
+          throw new Error(`图片验证失败: ${imageError}`);
+        }
+        
+        throw err;
       }
       
       setSubmitSuccess(true);
@@ -122,7 +207,8 @@ export const SubmitPage: React.FC = () => {
       setGameId('');
       setServerId('');
       setDescription('');
-      setEvidence('');
+      setImages([]);
+      setImagePreviews([]);
       
       // 3秒后自动隐藏成功消息
       setTimeout(() => {
@@ -130,7 +216,18 @@ export const SubmitPage: React.FC = () => {
       }, 3000);
     } catch (err: any) {
       console.error('提交失败:', err);
-      setError(err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || '提交失败，请稍后再试');
+      
+      // 处理图片相关的错误
+      if (err.response?.data?.image_1) {
+        setError(`图片1验证失败: ${err.response.data.image_1}`);
+      } else if (err.response?.data?.image_2) {
+        setError(`图片2验证失败: ${err.response.data.image_2}`);
+      } else if (err.response?.data?.image_3) {
+        setError(`图片3验证失败: ${err.response.data.image_3}`);
+      } else {
+        setError(err.message || err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || '提交失败，请稍后再试');
+      }
+      
       setLoading(false);
     }
   };
@@ -201,17 +298,50 @@ export const SubmitPage: React.FC = () => {
               />
             </div>
 
+            {/* 图片上传区域 */}
             <div>
-              <label htmlFor="evidence" className="block text-sm font-medium text-gray-700 mb-1">
-                证据（可选）
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                配图（可选，最多3张）
               </label>
-              <textarea
-                id="evidence"
-                value={evidence}
-                onChange={(e) => setEvidence(e.target.value)}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="可以是图片链接或详细描述..."
-              />
+              <div className="mt-2 flex flex-wrap gap-2">
+                {/* 已上传图片预览 */}
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="relative w-24 h-24 rounded overflow-hidden">
+                    <img 
+                      src={preview} 
+                      alt={`预览图 ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                      onClick={() => removeImage(index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                
+                {/* 上传按钮 */}
+                {images.length < 3 && (
+                  <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span className="mt-1 text-xs text-gray-500">上传图片</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                      multiple
+                    />
+                  </label>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                支持JPG、PNG格式，单张图片大小不超过5MB
+              </p>
             </div>
 
             <div className="pt-4">
@@ -226,6 +356,7 @@ export const SubmitPage: React.FC = () => {
             <ul className="list-disc pl-5 space-y-1">
               <li>请确保提供的信息真实可靠，不得恶意诋毁他人</li>
               <li>提交后无法修改，请仔细检查信息</li>
+              <li>上传的图片将公开显示，请勿上传敏感或侵权内容</li>
             </ul>
           </div>
         </Card>
