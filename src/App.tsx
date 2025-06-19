@@ -3,6 +3,9 @@ import { useState, useEffect, createContext } from 'react';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import { HomePage } from './pages/HomePage';
+import { SearchPage } from './pages/SearchPage';
+import { PartnerDetailPage } from './pages/PartnerDetailPage';
+import { SubmitPage } from './pages/SubmitPage';
 import authService from '@/lib/auth';
 import './App.css'
 import { Toaster } from 'sonner';
@@ -58,7 +61,7 @@ function App() {
                       <LoginForm />
                     </div>
                   ) : (
-                    <Navigate to="/characters" replace />
+                    <Navigate to="/" replace />
                   )
                 } 
               />
@@ -70,11 +73,24 @@ function App() {
                       <RegisterForm />
                     </div>
                   ) : (
-                    <Navigate to="/characters" replace />
+                    <Navigate to="/" replace />
                   )
                 } 
               />
               <Route path="/" element={<HomePage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/partner/:id" element={<PartnerDetailPage />} />
+              <Route 
+                path="/submit" 
+                element={
+                  isAuthenticated ? (
+                    <SubmitPage />
+                  ) : (
+                    <Navigate to="/login" state={{ from: '/submit' }} replace />
+                  )
+                } 
+              />
+              <Route path="/characters" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
         </div>
