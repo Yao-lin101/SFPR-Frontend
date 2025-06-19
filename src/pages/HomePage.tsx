@@ -107,6 +107,12 @@ export const HomePage: React.FC = () => {
               >
                 投稿管理
               </Button>
+              <Button
+                onClick={() => navigate('/profile')}
+                variant="outline"
+              >
+                我的资料
+              </Button>
             </>
           ) : (
             <Button
