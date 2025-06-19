@@ -54,7 +54,7 @@ export const SubmitPage: React.FC = () => {
       return;
     }
     if (!gameId.trim()) {
-      setError('请输入游戏ID');
+      setError('请输入游戏ID或使用格式：玩家名#ID');
       return;
     }
     if (!serverId) {
@@ -135,9 +135,10 @@ export const SubmitPage: React.FC = () => {
                 placeholder="输入玩家昵称，例如: 玩家名#1234"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                支持格式: 玩家名#1234，会自动分离昵称和ID（以最后一个#为分隔）
-              </p>
+              
+              {/* 隐藏字段，用于提交表单 */}
+              <input type="hidden" name="nickname" value={nickname} />
+              <input type="hidden" name="game_id" value={gameId} />
             </div>
 
             <ServerSelector 

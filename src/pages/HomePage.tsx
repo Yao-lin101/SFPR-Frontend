@@ -74,6 +74,10 @@ export const HomePage: React.FC = () => {
                 placeholder="输入玩家昵称，例如: 玩家名#1234"
                 required
               />
+              
+              {/* 隐藏字段，用于搜索 */}
+              <input type="hidden" name="nickname" value={nickname} />
+              <input type="hidden" name="game_id" value={gameId} />
             </div>
 
             <ServerSelector 
