@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import api from '@/lib/api';
 import { AuthContext } from '@/App';
 import { SERVER_LIST } from '@/components/ServerSelector';
+import axios from 'axios';
 
 interface Record {
   id: string;
@@ -39,7 +40,10 @@ export const MyRecordsPage: React.FC = () => {
   // 获取用户的投稿记录
   useEffect(() => {
     const fetchMyRecords = async () => {
-      if (!isAuthenticated) return;
+      if (!isAuthenticated) {
+        navigate('/login', { state: { from: '/my-records' } });
+        return;
+      }
 
       try {
         setLoading(true);
@@ -48,13 +52,21 @@ export const MyRecordsPage: React.FC = () => {
         setLoading(false);
       } catch (err) {
         console.error('获取投稿记录失败:', err);
-        setError('获取投稿记录失败，请稍后再试');
+        
+        // 检查是否是认证错误
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          // 认证失败，重定向到登录页面
+          navigate('/login', { state: { from: '/my-records' } });
+        } else {
+          setError('获取投稿记录失败，请稍后再试');
+        }
+        
         setLoading(false);
       }
     };
 
     fetchMyRecords();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate]);
 
   // 格式化日期
   const formatDate = (dateString: string) => {
@@ -89,7 +101,15 @@ export const MyRecordsPage: React.FC = () => {
       setDeleteLoading(null);
     } catch (err) {
       console.error('删除记录失败:', err);
-      alert('删除失败，请稍后再试');
+      
+      // 检查是否是认证错误
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        // 认证失败，重定向到登录页面
+        navigate('/login', { state: { from: '/my-records' } });
+      } else {
+        alert('删除失败，请稍后再试');
+      }
+      
       setDeleteLoading(null);
     }
   };
