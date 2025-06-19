@@ -45,9 +45,9 @@ const LoginForm: React.FC = () => {
       console.log('触发认证状态更新事件...');
       window.dispatchEvent(new Event('auth-change'));
       
-      console.log('导航到角色管理页面...');
-      // 直接导航到角色管理页面
-      navigate('/characters', { replace: true });
+      console.log('导航到首页...');
+      // 直接导航到首页
+      navigate('/', { replace: true });
       
     } catch (err) {
       console.error('登录失败:', err);

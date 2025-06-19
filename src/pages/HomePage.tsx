@@ -102,10 +102,10 @@ export const HomePage: React.FC = () => {
                 我要投稿
               </Button>
               <Button
-                onClick={() => navigate('/characters')}
+                onClick={() => navigate('/my-records')}
                 variant="outline"
               >
-                角色管理
+                投稿管理
               </Button>
             </>
           ) : (
