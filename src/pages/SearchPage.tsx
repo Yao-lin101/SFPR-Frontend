@@ -3,12 +3,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import api from '@/lib/api';
+import { SERVER_LIST } from '@/components/ServerSelector';
 
 interface Partner {
   id: string;
   nickname: string;
   game_id: string;
   server_name: string;
+  server: number;
   created_at: string;
   views_count: number;
 }
@@ -25,6 +27,12 @@ export const SearchPage: React.FC = () => {
   const nickname = searchParams.get('nickname');
   const gameId = searchParams.get('game_id');
   const serverId = searchParams.get('server');
+
+  // 根据服务器ID获取服务器名称
+  const getServerName = (id: number): string => {
+    const server = SERVER_LIST.find(s => s.id === id);
+    return server ? server.name : `未知服务器(${id})`;
+  };
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -93,7 +101,7 @@ export const SearchPage: React.FC = () => {
             )}
             {serverId && (
               <div>
-                <span className="text-gray-500">服务器ID:</span> {serverId}
+                <span className="text-gray-500">服务器:</span> {getServerName(Number(serverId))}
               </div>
             )}
           </div>
@@ -120,7 +128,7 @@ export const SearchPage: React.FC = () => {
                   <div>
                     <h3 className="text-lg font-semibold">{partner.nickname}</h3>
                     <div className="text-sm text-gray-500 mt-1">
-                      ID: {partner.game_id} | 服务器: {partner.server_name}
+                      ID: {partner.game_id} | 服务器: {partner.server_name || getServerName(partner.server)}
                     </div>
                   </div>
                   <div className="text-right">

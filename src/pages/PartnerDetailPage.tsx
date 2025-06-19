@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import api from '@/lib/api';
+import { SERVER_LIST } from '@/components/ServerSelector';
 
 interface PartnerDetail {
   id: string;
   nickname: string;
   game_id: string;
   server_name: string;
+  server: number;
   description: string;
   evidence: string;
   submitter_username: string;
@@ -23,6 +25,12 @@ export const PartnerDetailPage: React.FC = () => {
   const [partner, setPartner] = useState<PartnerDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 根据服务器ID获取服务器名称
+  const getServerName = (id: number): string => {
+    const server = SERVER_LIST.find(s => s.id === id);
+    return server ? server.name : `未知服务器(${id})`;
+  };
 
   useEffect(() => {
     const fetchPartnerDetail = async () => {
@@ -90,7 +98,7 @@ export const PartnerDetailPage: React.FC = () => {
                 <div>
                   <h2 className="text-2xl font-bold">{partner.nickname}</h2>
                   <div className="text-gray-500 mt-1">
-                    游戏ID: {partner.game_id} | 服务器: {partner.server_name}
+                    游戏ID: {partner.game_id} | 服务器: {partner.server_name || getServerName(partner.server)}
                   </div>
                 </div>
                 <div className="text-right">
