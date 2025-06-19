@@ -1,0 +1,12 @@
+@keyframes textBreathing {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.breathing-text {
+  animation: textBreathing 3s ease-in-out infinite;
+} 
