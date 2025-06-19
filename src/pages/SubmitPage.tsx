@@ -70,13 +70,48 @@ export const SubmitPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      await api.post('/partners/', {
-        nickname,
-        game_id: gameId,
-        server: serverId,
-        description,
-        evidence
-      });
+      // 首先尝试查找玩家是否已存在
+      try {
+        // 构建搜索参数
+        const searchParams = new URLSearchParams();
+        searchParams.append('nickname', nickname);
+        searchParams.append('game_id', gameId);
+        searchParams.append('server', serverId);
+        
+        // 搜索玩家
+        const searchResponse = await api.get(`/players/search/?${searchParams.toString()}`);
+        const players = searchResponse.data.results || searchResponse.data;
+        
+        if (players && players.length > 0) {
+          // 玩家已存在，直接添加神人事迹
+          const playerId = players[0].id;
+          await api.post(`/players/${playerId}/add_record/`, {
+            description,
+            evidence
+          });
+          console.log(`为已存在的玩家 ${playerId} 添加神人事迹`);
+        } else {
+          // 玩家不存在，创建新玩家和神人事迹
+          await api.post('/players/', {
+            nickname,
+            game_id: gameId,
+            server: parseInt(serverId, 10),
+            description,
+            evidence
+          });
+          console.log('创建新玩家和神人事迹');
+        }
+      } catch (searchErr) {
+        // 搜索失败，尝试直接创建
+        console.error('搜索玩家失败，尝试直接创建:', searchErr);
+        await api.post('/players/', {
+          nickname,
+          game_id: gameId,
+          server: parseInt(serverId, 10),
+          description,
+          evidence
+        });
+      }
       
       setSubmitSuccess(true);
       setLoading(false);
@@ -95,7 +130,7 @@ export const SubmitPage: React.FC = () => {
       }, 3000);
     } catch (err: any) {
       console.error('提交失败:', err);
-      setError(err.response?.data?.detail || '提交失败，请稍后再试');
+      setError(err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || '提交失败，请稍后再试');
       setLoading(false);
     }
   };
@@ -113,7 +148,7 @@ export const SubmitPage: React.FC = () => {
         <Card className="p-6">
           {submitSuccess && (
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
-              投稿成功！您的投稿将在审核后发布。
+              投稿成功！
             </div>
           )}
 
@@ -135,6 +170,9 @@ export const SubmitPage: React.FC = () => {
                 placeholder="输入玩家昵称，例如: 玩家名#1234"
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                支持格式: 玩家名#1234，会自动分离昵称和ID（以最后一个#为分隔）
+              </p>
               
               {/* 隐藏字段，用于提交表单 */}
               <input type="hidden" name="nickname" value={nickname} />
@@ -187,7 +225,6 @@ export const SubmitPage: React.FC = () => {
             <p>注意事项：</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>请确保提供的信息真实可靠，不得恶意诋毁他人</li>
-              <li>您的投稿将在审核后发布</li>
               <li>提交后无法修改，请仔细检查信息</li>
             </ul>
           </div>

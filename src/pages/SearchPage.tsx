@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import api from '@/lib/api';
 import { SERVER_LIST } from '@/components/ServerSelector';
 
-interface Partner {
+interface Player {
   id: string;
   nickname: string;
   game_id: string;
@@ -13,12 +13,13 @@ interface Partner {
   server: number;
   created_at: string;
   views_count: number;
+  records_count: number;
 }
 
 export const SearchPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [partners, setPartners] = useState<Partner[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +36,7 @@ export const SearchPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchPartners = async () => {
+    const fetchPlayers = async () => {
       if (!nickname) {
         setError('缺少必要的搜索参数');
         setLoading(false);
@@ -45,14 +46,14 @@ export const SearchPage: React.FC = () => {
       try {
         setLoading(true);
         // 构建API请求URL
-        const url = '/partners/search/';
+        const url = '/players/search/';
         const params = new URLSearchParams();
         params.append('nickname', nickname);
         if (gameId) params.append('game_id', gameId);
         if (serverId) params.append('server', serverId);
 
         const response = await api.get(`${url}?${params.toString()}`);
-        setPartners(response.data.results || response.data);
+        setPlayers(response.data.results || response.data);
         setLoading(false);
       } catch (err) {
         console.error('搜索失败:', err);
@@ -61,7 +62,7 @@ export const SearchPage: React.FC = () => {
       }
     };
 
-    fetchPartners();
+    fetchPlayers();
   }, [nickname, gameId, serverId]);
 
   // 格式化日期
@@ -75,7 +76,7 @@ export const SearchPage: React.FC = () => {
   };
 
   const handleViewDetail = (id: string) => {
-    navigate(`/partner/${id}`);
+    navigate(`/player/${id}`);
   };
 
   return (
@@ -116,27 +117,27 @@ export const SearchPage: React.FC = () => {
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {error}
           </div>
-        ) : partners.length === 0 ? (
+        ) : players.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
-            未找到符合条件的神人记录
+            未找到符合条件的玩家记录
           </div>
         ) : (
           <div className="grid gap-4">
-            {partners.map((partner) => (
-              <Card key={partner.id} className="p-4 hover:shadow-md transition-shadow">
+            {players.map((player) => (
+              <Card key={player.id} className="p-4 hover:shadow-md transition-shadow">
                 <div className="flex justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold">{partner.nickname}</h3>
+                    <h3 className="text-lg font-semibold">{player.nickname}</h3>
                     <div className="text-sm text-gray-500 mt-1">
-                      ID: {partner.game_id} | 服务器: {partner.server_name || getServerName(partner.server)}
+                      ID: {player.game_id} | 服务器: {player.server_name || getServerName(player.server)}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm text-gray-500">
-                      记录于 {formatDate(partner.created_at)}
+                      记录于 {formatDate(player.created_at)}
                     </div>
                     <div className="text-sm text-gray-500">
-                      查看次数: {partner.views_count}
+                      神人事迹: {player.records_count} | 查看次数: {player.views_count}
                     </div>
                   </div>
                 </div>
@@ -144,7 +145,7 @@ export const SearchPage: React.FC = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => handleViewDetail(partner.id)}
+                    onClick={() => handleViewDetail(player.id)}
                   >
                     查看详情
                   </Button>

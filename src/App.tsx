@@ -1,48 +1,32 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect, createContext } from 'react';
-import LoginForm from './components/auth/LoginForm';
-import RegisterForm from './components/auth/RegisterForm';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import './App.css';
 import { HomePage } from './pages/HomePage';
 import { SearchPage } from './pages/SearchPage';
-import { PartnerDetailPage } from './pages/PartnerDetailPage';
+import { PlayerDetailPage } from './pages/PlayerDetailPage';
 import { SubmitPage } from './pages/SubmitPage';
-import authService from '@/lib/auth';
-import './App.css'
-import { Toaster } from 'sonner';
+import authService from './lib/auth';
+import { Toaster } from '@/components/ui/sonner';
 
 // 创建认证上下文
 export const AuthContext = createContext<boolean>(false);
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
+  // 检查用户是否已登录
   useEffect(() => {
-    const checkAuth = () => {
-      const { access } = authService.getTokens();
-      const newAuthState = !!access;
-      setIsAuthenticated(newAuthState);
-    };
+    const { access } = authService.getTokens();
+    setIsAuthenticated(!!access);
 
-    // 初始检查
-    checkAuth();
-
-    // 监听 storage 变化
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'access_token') {
-        checkAuth();
-      }
-    };
-
-    // 监听自定义认证事件
+    // 监听认证状态变更
     const handleAuthChange = () => {
-      checkAuth();
+      const { access } = authService.getTokens();
+      setIsAuthenticated(!!access);
     };
 
-    window.addEventListener('storage', handleStorageChange);
     window.addEventListener('auth-change', handleAuthChange);
-    
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('auth-change', handleAuthChange);
     };
   }, []);
@@ -50,52 +34,14 @@ function App() {
   return (
     <AuthContext.Provider value={isAuthenticated}>
       <Router>
-        <div className="min-h-screen bg-gray-100 flex flex-col">
-          <main className="flex-1 relative">
-            <Routes>
-              <Route 
-                path="/login" 
-                element={
-                  !isAuthenticated ? (
-                    <div className="absolute inset-0 flex items-center justify-center p-4">
-                      <LoginForm />
-                    </div>
-                  ) : (
-                    <Navigate to="/" replace />
-                  )
-                } 
-              />
-              <Route 
-                path="/register" 
-                element={
-                  !isAuthenticated ? (
-                    <div className="absolute inset-0 flex items-center justify-center p-4">
-                      <RegisterForm />
-                    </div>
-                  ) : (
-                    <Navigate to="/" replace />
-                  )
-                } 
-              />
-              <Route path="/" element={<HomePage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/partner/:id" element={<PartnerDetailPage />} />
-              <Route 
-                path="/submit" 
-                element={
-                  isAuthenticated ? (
-                    <SubmitPage />
-                  ) : (
-                    <Navigate to="/login" state={{ from: '/submit' }} replace />
-                  )
-                } 
-              />
-              <Route path="/characters" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </div>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/player/:id" element={<PlayerDetailPage />} />
+          <Route path="/submit" element={<SubmitPage />} />
+        </Routes>
+        <Toaster />
       </Router>
-      <Toaster richColors />
     </AuthContext.Provider>
   );
 }
