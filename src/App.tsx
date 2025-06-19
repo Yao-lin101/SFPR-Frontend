@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { HomePage } from './pages/HomePage';
 import { SearchPage } from './pages/SearchPage';
@@ -43,8 +43,30 @@ function App() {
           <Route path="/submit" element={<SubmitPage />} />
           <Route path="/player/:id" element={<PlayerDetailPage />} />
           <Route path="/my-records" element={<MyRecordsPage />} />
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/register" element={<RegisterForm />} />
+          <Route 
+                path="/login" 
+                element={
+                  !isAuthenticated ? (
+                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                      <LoginForm />
+                    </div>
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                } 
+              />
+              <Route 
+                path="/register" 
+                element={
+                  !isAuthenticated ? (
+                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                      <RegisterForm />
+                    </div>
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                } 
+              />
         </Routes>
         <Toaster />
       </Router>
