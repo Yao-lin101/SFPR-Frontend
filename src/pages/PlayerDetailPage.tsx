@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import api from '@/lib/api';
 import { SERVER_LIST } from '@/components/ServerSelector';
 import { AuthContext } from '@/App';
+import { SubmitDialog } from '@/components/SubmitDialog';
 
 interface Record {
   id: string;
@@ -44,6 +45,7 @@ export const PlayerDetailPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   // 根据服务器ID获取服务器名称
   const getServerName = (id: number): string => {
@@ -196,12 +198,25 @@ export const PlayerDetailPage: React.FC = () => {
     }
   };
 
+  const handleSubmitClick = () => {
+    if (isAuthenticated) {
+      setSubmitDialogOpen(true);
+    } else {
+      navigate('/login', { state: { from: `/player/${id}` } });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">玩家详情</h1>
           <div className="space-x-2">
+            {isAuthenticated && (
+              <Button variant="outline" onClick={handleSubmitClick}>
+                我要投稿
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate(-1)}>
               返回
             </Button>
@@ -427,6 +442,9 @@ export const PlayerDetailPage: React.FC = () => {
             未找到玩家记录
           </div>
         )}
+
+        {/* 投稿弹窗 */}
+        <SubmitDialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen} />
       </div>
     </div>
   );

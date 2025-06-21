@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import './App.css';
 import { HomePage } from './pages/HomePage';
 import { SearchPage } from './pages/SearchPage';
-import { SubmitPage } from './pages/SubmitPage';
 import { PlayerDetailPage } from './pages/PlayerDetailPage';
 import { MyRecordsPage } from './pages/MyRecordsPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -41,7 +40,6 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/submit" element={<SubmitPage />} />
           <Route path="/player/:id" element={<PlayerDetailPage />} />
           <Route path="/my-records" element={<MyRecordsPage />} />
           <Route path="/profile" element={<ProfilePage />} />

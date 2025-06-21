@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import Input from '@/components/ui/Input';
 import api from '@/lib/api';
-import { AuthContext } from '@/App';
 import { ServerSelector } from '@/components/ServerSelector';
+import { toast } from 'sonner';
 
-export const SubmitPage: React.FC = () => {
-  const navigate = useNavigate();
-  const isAuthenticated = React.useContext(AuthContext);
+interface SubmitDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const SubmitDialog: React.FC<SubmitDialogProps> = ({ open, onOpenChange }) => {
   const [fullName, setFullName] = useState('');
   const [nickname, setNickname] = useState('');
   const [gameId, setGameId] = useState('');
@@ -18,15 +20,7 @@ export const SubmitPage: React.FC = () => {
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // 如果用户未登录，重定向到登录页面
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: '/submit' } });
-    }
-  }, [isAuthenticated, navigate]);
 
   // 处理昵称输入，自动解析 xxx#1234 格式，只分隔最后一个#
   const handleFullNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,6 +105,22 @@ export const SubmitPage: React.FC = () => {
     setImagePreviews(newPreviews);
   };
 
+  const resetForm = () => {
+    setFullName('');
+    setNickname('');
+    setGameId('');
+    setServerId('');
+    setDescription('');
+    setImages([]);
+    setImagePreviews([]);
+    setError(null);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onOpenChange(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -186,6 +196,10 @@ export const SubmitPage: React.FC = () => {
         });
         console.log(`为玩家 ${playerId} 添加神人事迹成功`);
         
+        // 显示成功消息并关闭弹窗
+        toast.success('投稿成功！');
+        handleClose();
+        
       } catch (err: any) {
         console.error('操作失败:', err);
         
@@ -198,22 +212,6 @@ export const SubmitPage: React.FC = () => {
         throw err;
       }
       
-      setSubmitSuccess(true);
-      setLoading(false);
-      
-      // 重置表单
-      setFullName('');
-      setNickname('');
-      setGameId('');
-      setServerId('');
-      setDescription('');
-      setImages([]);
-      setImagePreviews([]);
-      
-      // 3秒后自动隐藏成功消息
-      setTimeout(() => {
-        setSubmitSuccess(false);
-      }, 3000);
     } catch (err: any) {
       console.error('提交失败:', err);
       
@@ -227,131 +225,114 @@ export const SubmitPage: React.FC = () => {
       } else {
         setError(err.message || err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || '提交失败，请稍后再试');
       }
-      
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">投稿神人</h1>
-          <Button variant="outline" onClick={() => navigate('/')}>
-            返回首页
-          </Button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">投稿神人</DialogTitle>
+        </DialogHeader>
 
-        <Card className="p-6">
-          {submitSuccess && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
-              投稿成功！
-            </div>
-          )}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                玩家昵称 <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="fullName"
-                value={fullName}
-                onChange={handleFullNameChange}
-                placeholder="输入玩家昵称，例如: 玩家名#1234"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                支持格式: 玩家名#1234，会自动分离昵称和ID（以最后一个#为分隔）
-              </p>
-              
-              {/* 隐藏字段，用于提交表单 */}
-              <input type="hidden" name="nickname" value={nickname} />
-              <input type="hidden" name="game_id" value={gameId} />
-            </div>
-
-            <ServerSelector 
-              value={serverId}
-              onChange={setServerId}
-              required={true}
-              label="服务器"
-              emptyOptionText="选择服务器"
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+              玩家昵称 <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="fullName"
+              value={fullName}
+              onChange={handleFullNameChange}
+              placeholder="输入玩家昵称，例如: 玩家名#1234"
+              required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              支持格式: 玩家名#1234，会自动分离昵称和ID（以最后一个#为分隔）
+            </p>
+            
+            {/* 隐藏字段，用于提交表单 */}
+            <input type="hidden" name="nickname" value={nickname} />
+            <input type="hidden" name="game_id" value={gameId} />
+          </div>
 
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                神人事迹 <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="详细描述神人的行为..."
-                required
-              />
+          <ServerSelector 
+            value={serverId}
+            onChange={setServerId}
+            required={true}
+            label="服务器"
+            emptyOptionText="选择服务器"
+          />
+
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              神人事迹 <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              placeholder="详细描述神人的行为..."
+              required
+            />
+          </div>
+
+          {/* 图片上传区域 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              配图（可选，最多3张）
+            </label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {/* 已上传图片预览 */}
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="relative w-24 h-24 rounded overflow-hidden">
+                  <img 
+                    src={preview} 
+                    alt={`预览图 ${index + 1}`} 
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                    onClick={() => removeImage(index)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              
+              {/* 上传按钮 */}
+              {images.length < 3 && (
+                <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="mt-1 text-xs text-gray-500">上传图片</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                    multiple
+                  />
+                </label>
+              )}
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              支持JPG、PNG格式，单张图片大小不超过5MB
+            </p>
+          </div>
 
-            {/* 图片上传区域 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                配图（可选，最多3张）
-              </label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {/* 已上传图片预览 */}
-                {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative w-24 h-24 rounded overflow-hidden">
-                    <img 
-                      src={preview} 
-                      alt={`预览图 ${index + 1}`} 
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                      onClick={() => removeImage(index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                
-                {/* 上传按钮 */}
-                {images.length < 3 && (
-                  <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span className="mt-1 text-xs text-gray-500">上传图片</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageUpload}
-                      multiple
-                    />
-                  </label>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                支持JPG、PNG格式，单张图片大小不超过5MB
-              </p>
-            </div>
-
-            <div className="pt-4">
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? '提交中...' : '提交神人记录'}
-              </Button>
-            </div>
-          </form>
-
-          <div className="mt-6 text-sm text-gray-500">
+          <div className="text-sm text-gray-500">
             <p>注意事项：</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>请确保提供的信息真实可靠，不得恶意诋毁他人</li>
@@ -359,8 +340,17 @@ export const SubmitPage: React.FC = () => {
               <li>上传的图片将公开显示，请勿上传敏感或侵权内容</li>
             </ul>
           </div>
-        </Card>
-      </div>
-    </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+              取消
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? '提交中...' : '提交神人记录'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }; 

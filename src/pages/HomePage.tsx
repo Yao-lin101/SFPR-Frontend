@@ -6,6 +6,7 @@ import { AuthContext } from '@/App';
 import { SparklesText } from "@/components/magicui/sparkles-text";
 import { Card } from '@/components/ui/card';
 import { ServerSelector } from '@/components/ServerSelector';
+import { SubmitDialog } from '@/components/SubmitDialog';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export const HomePage: React.FC = () => {
   const [gameId, setGameId] = useState('');
   const [serverId, setServerId] = useState('');
   const [loading] = useState(false);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   // 处理昵称输入，自动解析 xxx#1234 格式，只分隔最后一个#
   const handleFullNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,6 +51,14 @@ export const HomePage: React.FC = () => {
 
     // 跳转到搜索结果页面
     navigate(`/search?${searchParams.toString()}`);
+  };
+
+  const handleSubmitClick = () => {
+    if (isAuthenticated) {
+      setSubmitDialogOpen(true);
+    } else {
+      navigate('/login', { state: { from: '/' } });
+    }
   };
 
   return (
@@ -96,7 +106,7 @@ export const HomePage: React.FC = () => {
           {isAuthenticated ? (
             <>
               <Button
-                onClick={() => navigate('/submit')}
+                onClick={handleSubmitClick}
                 variant="outline"
               >
                 我要投稿
@@ -124,6 +134,9 @@ export const HomePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* 投稿弹窗 */}
+      <SubmitDialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen} />
     </div>
   );
 }; 

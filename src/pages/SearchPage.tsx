@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import api from '@/lib/api';
 import { SERVER_LIST } from '@/components/ServerSelector';
+import { SubmitDialog } from '@/components/SubmitDialog';
+import { AuthContext } from '@/App';
 
 interface Player {
   id: string;
@@ -19,9 +21,11 @@ interface Player {
 export const SearchPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const isAuthenticated = React.useContext(AuthContext);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   // 从URL获取搜索参数
   const searchParams = new URLSearchParams(location.search);
@@ -79,14 +83,29 @@ export const SearchPage: React.FC = () => {
     navigate(`/player/${id}`);
   };
 
+  const handleSubmitClick = () => {
+    if (isAuthenticated) {
+      setSubmitDialogOpen(true);
+    } else {
+      navigate('/login', { state: { from: '/search' } });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">搜索结果</h1>
-          <Button variant="outline" onClick={() => navigate('/')}>
-            返回首页
-          </Button>
+          <div className="space-x-2">
+            {isAuthenticated && (
+              <Button variant="outline" onClick={handleSubmitClick}>
+                我要投稿
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => navigate('/')}>
+              返回首页
+            </Button>
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded-md shadow mb-6">
@@ -154,6 +173,9 @@ export const SearchPage: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* 投稿弹窗 */}
+        <SubmitDialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen} />
       </div>
     </div>
   );

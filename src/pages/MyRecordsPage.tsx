@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import api from '@/lib/api';
 import { AuthContext } from '@/App';
 import { SERVER_LIST } from '@/components/ServerSelector';
+import { SubmitDialog } from '@/components/SubmitDialog';
 import axios from 'axios';
 
 interface Record {
@@ -32,6 +33,7 @@ export const MyRecordsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   // 如果用户未登录，重定向到登录页面
   useEffect(() => {
@@ -122,13 +124,17 @@ export const MyRecordsPage: React.FC = () => {
     navigate(`/player/${playerId}`);
   };
 
+  const handleSubmitClick = () => {
+    setSubmitDialogOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">我的投稿管理</h1>
           <div className="space-x-2">
-            <Button variant="outline" onClick={() => navigate('/submit')}>
+            <Button variant="outline" onClick={handleSubmitClick}>
               新增投稿
             </Button>
             <Button variant="outline" onClick={() => navigate('/')}>
@@ -251,6 +257,9 @@ export const MyRecordsPage: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* 投稿弹窗 */}
+        <SubmitDialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen} />
       </div>
     </div>
   );
