@@ -1,24 +1,6 @@
 // API configuration
-// 动态获取API地址，支持局域网访问
-const getApiUrl = () => {
-  // 如果有环境变量配置，优先使用
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
-  }
-  
-  // 获取当前页面的hostname
-  const hostname = window.location.hostname;
-  
-  // 如果是localhost或127.0.0.1，使用默认配置
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://127.0.0.1:8000';
-  }
-  
-  // 如果是其他IP地址（局域网访问），使用相同的IP访问后端
-  return `http://${hostname}:8000`;
-};
+export const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
-export const API_URL = getApiUrl();
 
 // 媒体文件URL配置
 export const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || `${API_URL}/media/`;

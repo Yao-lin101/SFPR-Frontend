@@ -23,15 +23,13 @@ export interface RegisterCredentials {
 }
 
 export interface AuthResponse {
+  access: string;
+  refresh: string;
   user: {
     uid: string;
     username: string;
     email: string;
     is_email_verified: boolean;
-  };
-  token: {
-    access: string;
-    refresh: string;
   };
 }
 
