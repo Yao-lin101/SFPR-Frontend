@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import api from '@/lib/api';
 import { SERVER_LIST } from '@/components/ServerSelector';
 import { AuthContext } from '@/App';
-import { SubmitDialog } from '@/components/SubmitDialog';
+import { AddRecordDialog } from '@/components/AddRecordDialog';
 
 interface Record {
   id: string;
@@ -38,14 +38,7 @@ export const PlayerDetailPage: React.FC = () => {
   const [player, setPlayer] = useState<PlayerDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [newDescription, setNewDescription] = useState('');
-  const [newEvidence, setNewEvidence] = useState('');
-  const [images, setImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [addRecordDialogOpen, setAddRecordDialogOpen] = useState(false);
 
   // 根据服务器ID获取服务器名称
   const getServerName = (id: number): string => {
@@ -53,26 +46,26 @@ export const PlayerDetailPage: React.FC = () => {
     return server ? server.name : `未知服务器(${id})`;
   };
 
+  const fetchPlayerDetail = async () => {
+    if (!id) {
+      setError('缺少玩家ID');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.get(`/players/${id}/`);
+      setPlayer(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('获取玩家详情失败:', err);
+      setError('获取玩家详情失败，请稍后再试');
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPlayerDetail = async () => {
-      if (!id) {
-        setError('缺少玩家ID');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const response = await api.get(`/players/${id}/`);
-        setPlayer(response.data);
-        setLoading(false);
-      } catch (err) {
-        console.error('获取玩家详情失败:', err);
-        setError('获取玩家详情失败，请稍后再试');
-        setLoading(false);
-      }
-    };
-
     fetchPlayerDetail();
   }, [id]);
 
@@ -88,122 +81,17 @@ export const PlayerDetailPage: React.FC = () => {
     });
   };
 
-  // 处理图片上传
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    // 限制上传数量
-    if (images.length + files.length > 3) {
-      setSubmitError('最多只能上传3张图片');
-      return;
-    }
-
-    // 添加新选择的图片
-    const newImages = [...images];
-    const newPreviews = [...imagePreviews];
-    
-    Array.from(files).forEach(file => {
-      // 检查文件类型
-      if (!file.type.startsWith('image/')) {
-        setSubmitError('只能上传图片文件');
-        return;
-      }
-      
-      // 检查文件大小（限制为5MB）
-      if (file.size > 5 * 1024 * 1024) {
-        setSubmitError('图片大小不能超过5MB');
-        return;
-      }
-      
-      newImages.push(file);
-      
-      // 创建预览URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        newPreviews.push(reader.result as string);
-        setImagePreviews([...newPreviews]);
-      };
-      reader.readAsDataURL(file);
-    });
-    
-    setImages(newImages);
-    setSubmitError(null);
-  };
-
-  // 移除已选择的图片
-  const removeImage = (index: number) => {
-    const newImages = [...images];
-    const newPreviews = [...imagePreviews];
-    
-    newImages.splice(index, 1);
-    newPreviews.splice(index, 1);
-    
-    setImages(newImages);
-    setImagePreviews(newPreviews);
-  };
-
-  // 提交新的神人事迹
-  const handleSubmitRecord = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newDescription.trim()) {
-      setSubmitError('神人事迹不能为空');
-      return;
-    }
-    
-    try {
-      setSubmitting(true);
-      setSubmitError(null);
-      
-      // 准备表单数据，包含图片
-      const formData = new FormData();
-      formData.append('description', newDescription);
-      
-      if (newEvidence.trim()) {
-        formData.append('evidence', newEvidence);
-      }
-      
-      // 添加图片到表单数据
-      images.forEach((image, index) => {
-        formData.append(`image_${index + 1}`, image);
-      });
-      
-      await api.post(`/players/${id}/add_record/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      // 重新获取玩家详情，包含新的记录
-      const response = await api.get(`/players/${id}/`);
-      setPlayer(response.data);
-      
-      // 重置表单
-      setNewDescription('');
-      setNewEvidence('');
-      setImages([]);
-      setImagePreviews([]);
-      setSubmitSuccess(true);
-      
-      // 3秒后隐藏成功消息
-      setTimeout(() => {
-        setSubmitSuccess(false);
-      }, 3000);
-    } catch (err: any) {
-      console.error('提交神人事迹失败:', err);
-      setSubmitError(err.response?.data?.detail || '提交失败，请稍后再试');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleSubmitClick = () => {
+  const handleAddRecordClick = () => {
     if (isAuthenticated) {
-      setSubmitDialogOpen(true);
+      setAddRecordDialogOpen(true);
     } else {
       navigate('/login', { state: { from: `/player/${id}` } });
     }
+  };
+
+  const handleRecordAdded = () => {
+    // 重新获取玩家详情，包含新的记录
+    fetchPlayerDetail();
   };
 
   return (
@@ -212,11 +100,6 @@ export const PlayerDetailPage: React.FC = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">玩家详情</h1>
           <div className="space-x-2">
-            {isAuthenticated && (
-              <Button variant="outline" onClick={handleSubmitClick}>
-                我要投稿
-              </Button>
-            )}
             <Button variant="outline" onClick={() => navigate(-1)}>
               返回
             </Button>
@@ -262,7 +145,14 @@ export const PlayerDetailPage: React.FC = () => {
               </div>
             </Card>
 
-            <h3 className="text-xl font-bold mb-4">神人事迹记录 ({player.records.length})</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">神人事迹记录 ({player.records.length})</h3>
+              {isAuthenticated && (
+                <Button onClick={handleAddRecordClick} variant="outline">
+                  我要补充
+                </Button>
+              )}
+            </div>
             
             {player.records.length === 0 ? (
               <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded mb-6">
@@ -337,105 +227,6 @@ export const PlayerDetailPage: React.FC = () => {
                 ))}
               </div>
             )}
-
-            {isAuthenticated && (
-              <Card className="p-6">
-                <h3 className="text-lg font-bold mb-4">添加新的神人事迹</h3>
-                
-                {submitSuccess && (
-                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
-                    添加成功！
-                  </div>
-                )}
-
-                {submitError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                    {submitError}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitRecord} className="space-y-4">
-                  <div>
-                    <label htmlFor="newDescription" className="block text-sm font-medium text-gray-700 mb-1">
-                      神人事迹 <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      id="newDescription"
-                      value={newDescription}
-                      onChange={(e) => setNewDescription(e.target.value)}
-                      className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      placeholder="详细描述神人的行为..."
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="newEvidence" className="block text-sm font-medium text-gray-700 mb-1">
-                      补充说明（可选）
-                    </label>
-                    <textarea
-                      id="newEvidence"
-                      value={newEvidence}
-                      onChange={(e) => setNewEvidence(e.target.value)}
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      placeholder="补充说明或其他信息..."
-                    />
-                  </div>
-                  
-                  {/* 图片上传区域 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      配图（可选，最多3张）
-                    </label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {/* 已上传图片预览 */}
-                      {imagePreviews.map((preview, index) => (
-                        <div key={index} className="relative w-24 h-24 rounded overflow-hidden">
-                          <img 
-                            src={preview} 
-                            alt={`预览图 ${index + 1}`} 
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                            onClick={() => removeImage(index)}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                      
-                      {/* 上传按钮 */}
-                      {images.length < 3 && (
-                        <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          <span className="mt-1 text-xs text-gray-500">上传图片</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleImageUpload}
-                            multiple
-                          />
-                        </label>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      支持JPG、PNG格式，单张图片大小不超过5MB
-                    </p>
-                  </div>
-
-                  <div className="pt-4">
-                    <Button type="submit" className="w-full" disabled={submitting}>
-                      {submitting ? '提交中...' : '提交神人事迹'}
-                    </Button>
-                  </div>
-                </form>
-              </Card>
-            )}
           </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
@@ -443,8 +234,15 @@ export const PlayerDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* 投稿弹窗 */}
-        <SubmitDialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen} />
+        {/* 添加记录弹窗 */}
+        {id && (
+          <AddRecordDialog 
+            open={addRecordDialogOpen} 
+            onOpenChange={setAddRecordDialogOpen}
+            playerId={id}
+            onRecordAdded={handleRecordAdded}
+          />
+        )}
       </div>
     </div>
   );
