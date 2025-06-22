@@ -75,6 +75,19 @@ export const apiService = {
     console.log('API请求URL:', `${api.defaults.baseURL}${url}`);
     const response = await api.get(url);
     return response.data;
+  },
+
+  // 邀请码相关接口
+  // 创建邀请码
+  createInvitationCode: async () => {
+    const response = await api.post('/users/create_invitation/', {});
+    return response.data;
+  },
+
+  // 获取邀请码列表
+  getInvitationCodes: async () => {
+    const response = await api.get('/users/list_invitations/');
+    return response.data;
   }
 };
 

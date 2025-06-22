@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { AuthContext } from '@/App';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { InvitationCodeDialog } from '@/components/InvitationCodeDialog';
+import { Gift } from 'lucide-react';
 
 interface UserProfile {
   uid: string;
@@ -15,6 +17,7 @@ interface UserProfile {
   avatar: string | null;
   bio: string | null; // 用于存储QQ号
   is_email_verified: boolean;
+  is_superuser: boolean; // 是否为超级用户
 }
 
 export const ProfilePage: React.FC = () => {
@@ -92,13 +95,23 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">我的资料</h1>
-          <Button variant="outline" onClick={() => navigate('/')}>
-            返回首页
-          </Button>
-        </div>
+              <div className="max-w-2xl mx-auto">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">我的资料</h1>
+            <div className="flex gap-2">
+              {profile?.is_superuser && (
+                <InvitationCodeDialog>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Gift className="h-4 w-4" />
+                    邀请码管理
+                  </Button>
+                </InvitationCodeDialog>
+              )}
+              <Button variant="outline" onClick={() => navigate('/')}>
+                返回首页
+              </Button>
+            </div>
+          </div>
 
         {loading ? (
           <div className="text-center py-10">
