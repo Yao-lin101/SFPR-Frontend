@@ -123,7 +123,7 @@ const RegisterForm: React.FC = () => {
       const response = await authService.register(registerData);
       
       // 注册成功后自动登录
-      authService.setTokens(response.token.access, response.token.refresh);
+      authService.setTokens(response.access, response.refresh);
       authService.setUser(response.user);
       
       navigate('/');

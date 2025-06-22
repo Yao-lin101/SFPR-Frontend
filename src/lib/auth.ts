@@ -52,7 +52,7 @@ const authService = {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.detail || '注册失败');
+        throw new Error(error.response.data.error || error.response.data.detail || '注册失败');
       }
       throw error;
     }
@@ -63,7 +63,7 @@ const authService = {
       await authApi.post('/users/send_verify_code/', { email });
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.detail || '验证码发送失败');
+        throw new Error(error.response.data.error || error.response.data.detail || '验证码发送失败');
       }
       throw error;
     }
