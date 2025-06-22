@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { compressImage, isImageFile, formatFileSize } from '@/utils/imageUtils';
 
 interface AddRecordDialogProps {
   open: boolean;
@@ -22,9 +23,10 @@ export const AddRecordDialog: React.FC<AddRecordDialogProps> = ({
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [compressing, setCompressing] = useState(false);
 
   // 处理图片上传
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
@@ -34,46 +36,60 @@ export const AddRecordDialog: React.FC<AddRecordDialogProps> = ({
       return;
     }
 
-    // 添加新选择的图片
-    const newImages = [...images];
-    const newPreviews = [...imagePreviews];
-    
-    Array.from(files).forEach(file => {
-      // 检查文件类型
-      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        setError(`不支持的图片格式: ${file.type}。请上传JPG、PNG、GIF或WEBP格式的图片`);
-        return;
-      }
-      
-      // 检查文件大小（限制为5MB）
-      if (file.size > 5 * 1024 * 1024) {
-        setError(`图片 ${file.name} 大小超过5MB，请压缩后再上传`);
-        return;
-      }
-      
-      // 检查文件名长度
-      if (file.name.length > 100) {
-        setError('文件名过长，请重命名后再上传');
-        return;
-      }
-      
-      newImages.push(file);
-      
-      // 创建预览URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        newPreviews.push(reader.result as string);
-        setImagePreviews([...newPreviews]);
-      };
-      reader.onerror = () => {
-        setError(`读取图片 ${file.name} 失败，请尝试其他图片`);
-      };
-      reader.readAsDataURL(file);
-    });
-    
-    setImages(newImages);
+    setCompressing(true);
     setError(null);
+
+    try {
+      const newImages = [...images];
+      const newPreviews = [...imagePreviews];
+      
+      for (const file of Array.from(files)) {
+        // 检查文件类型
+        if (!isImageFile(file)) {
+          setError(`不支持的图片格式: ${file.type}。请上传JPG、PNG、GIF或WEBP格式的图片`);
+          continue;
+        }
+        
+        let processedFile = file;
+        const originalSizeKB = file.size / 1024;
+        
+        // 如果图片大于500KB，进行压缩
+        if (originalSizeKB > 500) {
+          try {
+            console.log(`压缩图片 ${file.name}，原始大小: ${formatFileSize(file.size)}`);
+            processedFile = await compressImage(file, 500);
+            console.log(`压缩完成，压缩后大小: ${formatFileSize(processedFile.size)}`);
+            
+            // 显示压缩信息
+            toast.success(`图片 ${file.name} 已压缩：${formatFileSize(file.size)} → ${formatFileSize(processedFile.size)}`);
+          } catch (compressError) {
+            console.error('图片压缩失败:', compressError);
+            setError(`图片 ${file.name} 压缩失败，请尝试其他图片`);
+            continue;
+          }
+        }
+        
+        newImages.push(processedFile);
+        
+        // 创建预览URL
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newPreviews.push(reader.result as string);
+          setImagePreviews([...newPreviews]);
+        };
+        reader.onerror = () => {
+          setError(`读取图片 ${file.name} 失败，请尝试其他图片`);
+        };
+        reader.readAsDataURL(processedFile);
+      }
+      
+      setImages(newImages);
+    } catch (err) {
+      console.error('处理图片失败:', err);
+      setError('处理图片失败，请稍后再试');
+    } finally {
+      setCompressing(false);
+    }
   };
 
   // 移除已选择的图片
@@ -164,6 +180,12 @@ export const AddRecordDialog: React.FC<AddRecordDialogProps> = ({
           </div>
         )}
 
+        {compressing && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
+            正在压缩图片，请稍候...
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
@@ -200,12 +222,16 @@ export const AddRecordDialog: React.FC<AddRecordDialogProps> = ({
                   >
                     ×
                   </button>
+                  {/* 显示图片大小 */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
+                    {formatFileSize(images[index]?.size || 0)}
+                  </div>
                 </div>
               ))}
               
               {/* 上传按钮 */}
               {images.length < 3 && (
-                <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
+                <label className={`w-24 h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 ${compressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -216,12 +242,13 @@ export const AddRecordDialog: React.FC<AddRecordDialogProps> = ({
                     className="hidden"
                     onChange={handleImageUpload}
                     multiple
+                    disabled={compressing}
                   />
                 </label>
               )}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              支持JPG、PNG格式，单张图片大小不超过5MB
+              支持JPG、PNG、GIF、WEBP格式，超过500KB的图片将自动压缩
             </p>
           </div>
 
@@ -235,11 +262,11 @@ export const AddRecordDialog: React.FC<AddRecordDialogProps> = ({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={loading || compressing}>
               取消
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? '提交中...' : '提交神人事迹'}
+            <Button type="submit" disabled={loading || compressing}>
+              {loading ? '提交中...' : compressing ? '处理图片中...' : '提交神人事迹'}
             </Button>
           </DialogFooter>
         </form>
