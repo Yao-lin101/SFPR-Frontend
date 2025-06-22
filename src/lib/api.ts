@@ -67,4 +67,15 @@ api.interceptors.response.use(
   }
 );
 
+// API methods
+export const apiService = {
+  // 获取系统配置
+  getSystemConfig: async () => {
+    const url = '/users/config/';
+    console.log('API请求URL:', `${api.defaults.baseURL}${url}`);
+    const response = await api.get(url);
+    return response.data;
+  }
+};
+
 export default api; 

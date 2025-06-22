@@ -19,17 +19,19 @@ export interface RegisterCredentials {
   email: string;
   password: string;
   verify_code: string;
-  invitation_code: string;
+  invitation_code?: string;
 }
 
 export interface AuthResponse {
-  access: string;
-  refresh: string;
   user: {
     uid: string;
     username: string;
     email: string;
     is_email_verified: boolean;
+  };
+  token: {
+    access: string;
+    refresh: string;
   };
 }
 
@@ -84,8 +86,18 @@ const authService = {
   setTokens(access: string, refresh: string): void {
     localStorage.setItem('access_token', access);
     localStorage.setItem('refresh_token', refresh);
+    localStorage.setItem('user', JSON.stringify({ access, refresh }));
     // 触发认证状态变更事件
     window.dispatchEvent(new Event('auth-change'));
+  },
+
+  setUser(user: any): void {
+    localStorage.setItem('user', JSON.stringify(user));
+  },
+
+  getUser(): any {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
   },
 
   getTokens(): { access: string | null; refresh: string | null } {
@@ -98,6 +110,7 @@ const authService = {
   clearTokens(): void {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
     // 触发认证状态变更事件
     window.dispatchEvent(new Event('auth-change'));
   },

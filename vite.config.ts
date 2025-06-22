@@ -10,6 +10,8 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',  //测试环境使用
+    port: 5173,       //测试环境使用
     proxy: {
       '/api': {
         target: 'https://alive.ineed.asia',
