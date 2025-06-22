@@ -125,12 +125,20 @@ export const HomePage: React.FC = () => {
               </Button>
             </>
           ) : (
-            <Button
-              onClick={() => navigate('/login')}
-              variant="outline"
-            >
-              登录/注册
-            </Button>
+            <>
+              <Button
+                onClick={() => navigate('/login')}
+                variant="outline"
+              >
+                登录
+              </Button>
+              <Button
+                onClick={() => navigate('/register')}
+                variant="default"
+              >
+                注册
+              </Button>
+            </>
           )}
         </div>
       </div>
