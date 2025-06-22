@@ -8,7 +8,8 @@ import { AuthContext } from '@/App';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { InvitationCodeDialog } from '@/components/InvitationCodeDialog';
-import { Gift } from 'lucide-react';
+import { Gift, LogOut } from 'lucide-react';
+import authService from '@/lib/auth';
 
 interface UserProfile {
   uid: string;
@@ -93,6 +94,13 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  // 登出功能
+  const handleLogout = () => {
+    authService.clearTokens();
+    toast.success('已成功登出');
+    navigate('/login');
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
               <div className="max-w-2xl mx-auto">
@@ -109,6 +117,10 @@ export const ProfilePage: React.FC = () => {
               )}
               <Button variant="outline" onClick={() => navigate('/')}>
                 返回首页
+              </Button>
+              <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:border-red-300">
+                <LogOut className="h-4 w-4" />
+                登出
               </Button>
             </div>
           </div>
