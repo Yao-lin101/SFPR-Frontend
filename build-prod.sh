@@ -5,7 +5,7 @@
 echo "开始构建 CSList 前端..."
 
 # 设置生产环境变量
-export VITE_API_BASE_URL="https://cslist.ineed.asia"
+export VITE_API_BASE_URL="https://cslist.ineed.asia/api/v1"
 export VITE_MEDIA_URL="https://cslist.ineed.asia/media/"
 
 # 安装依赖
